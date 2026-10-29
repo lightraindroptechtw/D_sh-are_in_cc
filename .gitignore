@@ -1,0 +1,20 @@
+# 依賴套件：使用者自己執行 npm ci 安裝
+node_modules/
+
+# 測試和端對端測試的輸出
+tmp/
+
+# 記錄檔與系統檔
+*.log
+.DS_Store
+Thumbs.db
+
+# 修改前的備份（只留在本機）
+backups/
+
+.env
+.env.*
+!.env.example
+config.toml
+*.sqlite
+*.db

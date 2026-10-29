@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>DSH 插件市場</title>
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">D</div>
+      <div>
+        <h1 data-i18n="app.title">DSH 插件市場</h1>
+      </div>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <input id="q" type="search" data-i18n-placeholder="search.placeholder" placeholder="搜尋名稱、功能、作者或分類" autocomplete="off" spellcheck="false">
+      <kbd>/</kbd>
+    </label>
+    <button id="ai" class="ai-btn tip" type="button" data-i18n-data-tip="ai.tip" data-tip="">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"></path></svg><span data-i18n="ai.button">Haiku 搜尋</span>
+    </button>
+    <div id="lang-wrap" class="lang-wrap">
+      <button id="lang" class="ghost lang-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="lang-panel" data-i18n-title="lang.label" data-i18n-aria-label="lang.label">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"></path></svg><span id="lang-name"></span><span class="caret" aria-hidden="true">▾</span>
+      </button>
+      <div id="lang-panel" class="lang-panel" role="menu" hidden></div>
+    </div>
+  </header>
+
+  <section class="origin">
+    <span class="origin-text" data-i18n="origin.text">本插件市場來源依賴於以下 2 個網站，特此感謝。清單與插件著作權屬於清單維護者和插件作者：</span>
+    <span id="origin-links" class="origin-links"></span>
+  </section>
+
+  <section id="summary" class="summary" aria-live="polite"></section>
+
+  <div class="layout">
+    <main>
+      <div id="toolbar" class="toolbar">
+        <label class="sort"><span data-i18n="sort">排序</span>
+          <select id="sort">
+            <option value="updated" data-i18n="sort.updated">最近更新</option>
+            <option value="downloads" data-i18n="sort.downloads">下載最多</option>
+            <option value="stars" data-i18n="sort.stars">星數最多</option>
+            <option value="name" data-i18n="sort.name">名稱</option>
+          </select>
+        </label>
+        <button id="refresh" class="ghost tip" type="button" data-i18n="refresh" data-i18n-data-tip="refresh.tip" data-tip="">重新讀取清單</button>
+        <p id="count" class="count"></p>
+        <div class="tools">
+          <div id="filter-wrap" class="filter-wrap">
+            <button id="filter" class="ghost small filter-btn" type="button" aria-expanded="false" aria-controls="filter-panel">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7.5V19l-4-2v-4.5z"></path></svg><span data-i18n="filter">篩選</span>
+            </button>
+            <div id="filter-panel" class="filter-panel" hidden></div>
+          </div>
+        </div>
+      </div>
+      <div id="grid" class="grid"></div>
+      <nav id="pager" class="pager" data-i18n-aria-label="pager.label" aria-label="頁碼"></nav>
+    </main>
+  </div>
+
+  <div id="drawer" class="drawer" hidden>
+    <div class="scrim" data-close></div>
+    <article class="panel" role="dialog" aria-modal="true" aria-labelledby="d-title"></article>
+  </div>
+
+  <div id="jobs" class="jobs" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

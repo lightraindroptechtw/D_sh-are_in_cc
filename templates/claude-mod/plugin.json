@@ -1,0 +1,72 @@
+{
+  "name": "__DSH_PLUGIN_NAME__",
+  "version": "__DSH_PLUGIN_VERSION__",
+  "description": "__DSH_PLUGIN_DESCRIPTION__",
+  "userConfig": {
+    "allowModelCalls": {
+      "type": "boolean",
+      "title": "允許插件呼叫模型",
+      "description": "讓這個插件透過你的 Claude 工作階段呼叫模型（會用到你的用量）。每次呼叫都會顯示通知。",
+      "default": true
+    },
+    "allowAgents": {
+      "type": "boolean",
+      "title": "允許插件開子代理",
+      "description": "讓這個插件開 Claude Code 子代理（會用到你的用量，子代理也能使用工具）。每次開子代理都會顯示通知。",
+      "default": true
+    },
+    "shareConversation": {
+      "type": "boolean",
+      "title": "讓插件知道對話裡發生的事",
+      "description": "插件原本在 DSH 會收到對話事件（你的訊息、Claude 的回答、工具呼叫和結果）時，照樣轉給它；只有這類插件才會收到，第一次會顯示通知。關閉後插件收不到，依賴對話的功能（例如心情、工作狀態）不會動。",
+      "default": true
+    },
+    "allowFollowups": {
+      "type": "boolean",
+      "title": "允許插件自己送出訊息",
+      "description": "讓插件在 Claude Code 閒置時以插件名義送出一則訊息，開啟一個新回合（例如夥伴類插件主動說話）。會用到你的用量；預設關閉。",
+      "default": false
+    },
+    "allowInterception": {
+      "type": "boolean",
+      "title": "允許插件監督 Claude 的工具使用",
+      "description": "讓這個插件在 Claude 使用工具（例如 Bash）之前檢查，必要時擋下。開啟後插件只能擋下，不能改寫工具的內容。",
+      "default": false
+    },
+    "outboundMode": {
+      "type": "string",
+      "title": "對外發文模式",
+      "description": "插件要對外發文（留言、訊息、郵件、貼文）時怎麼做：ask＝每次先問你；auto＝自動發（仍有數量上限，發出後會通知並記錄）；deny＝一律不准發。",
+      "options": [
+        "ask",
+        "auto",
+        "deny"
+      ],
+      "default": "ask"
+    },
+    "outboundHourlyLimit": {
+      "type": "number",
+      "title": "自動發文每小時上限",
+      "description": "對外發文模式為 auto 時，每小時最多發幾則；0 表示不限。",
+      "default": 10
+    },
+    "outboundDailyLimit": {
+      "type": "number",
+      "title": "自動發文每天上限",
+      "description": "對外發文模式為 auto 時，24 小時內最多發幾則；0 表示不限。",
+      "default": 50
+    },
+    "allowDirectExec": {
+      "type": "boolean",
+      "title": "允許插件直接執行程式",
+      "description": "關閉時，插件要執行指令必須經過 Claude Code 的權限檢查。開啟後插件可以自己直接開程式，不經檢查（不建議）。",
+      "default": false
+    },
+    "extraFolders": {
+      "type": "string",
+      "title": "額外允許的資料夾",
+      "description": "除了插件資料夾、狀態資料夾、工作資料夾以外，額外允許插件讀寫的資料夾；以 ; 分隔的絕對路徑。留空表示沒有。",
+      "default": ""
+    }
+  }
+}
