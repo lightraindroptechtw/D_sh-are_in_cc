@@ -11,7 +11,7 @@
       "source": "./",
       "description": "讓 DSH 社群的插件能夠在 Claude Code 使用：先下載審查、白話說明風險，你同意才轉換安裝。Use DSH (DeepSeek Harness) community plugins in Claude Code.",
       "category": "development",
-      "version": "0.2.0-beta.1"
+      "version": "0.2.0-beta.2"
     }
   ]
 }

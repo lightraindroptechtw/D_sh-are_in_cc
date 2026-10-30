@@ -1,6 +1,6 @@
 # D_sh-are_in_cc
 
-> **0.2.0-beta.1 — 公開測試版。尚未在真正的 Claude Code 中完成重新安裝、載入及操作驗證；不能視為已確認完整可用。此次發布沒有啟動 Claude 或呼叫模型，歷史測試結果不等於本次實機驗證。**
+> **0.2.0-beta.2 — 公開測試版。尚未在真正的 Claude Code 中完成重新安裝、載入及操作驗證；不能視為已確認完整可用。此次發布沒有啟動 Claude 或呼叫模型，歷史測試結果不等於本次實機驗證。**
 >
 > **Public beta: fresh installation, loading, and interaction in a real Claude Code session have not been verified. This publication did not launch Claude or call a model. Historical tests are not fresh installed-client verification.**
 

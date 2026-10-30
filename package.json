@@ -1,6 +1,6 @@
 {
   "name": "d-sh-are-in-cc",
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "description": "Review, convert and install DSH (DeepSeek Harness) plugins in Claude Code",
   "type": "module",
   "private": true,
