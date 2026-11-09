@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 瀏覽器版 DSH 插件市場的 MCP 伺服器：Claude Code 啟動插件時一起啟動、結束時一起結束。
-// 只給同一個插件的外掛（hooks/register.tsx）用 $.mcp.call 呼叫，外掛也會擋掉模型直接呼叫這些工具。
+// dsh_market_open 外掛和市場技能（skills/market）都會用；其他工具只給同一個插件的外掛（hooks/register.tsx）用 $.mcp.call 呼叫，外掛也會擋掉模型直接呼叫它們。
 // 標準輸出只走 MCP 訊息（一行一則 JSON-RPC），說明文字一律寫到標準錯誤。
 import readline from 'node:readline';
 import { createMarketWeb } from '../lib/market-web.mjs';
@@ -10,7 +10,7 @@ const INTERNAL = '只給 D_sh-are_in_cc 外掛內部使用，模型不要呼叫�
 // caller：外掛每次呼叫都帶的隨機值，外掛的權限檢查靠它分辨是不是自己呼叫的；這裡不使用。
 const CALLER = { caller: { type: 'string' } };
 const TOOLS = [
-  { name: 'dsh_market_open', description: `啟動本機市場網站並回傳網址。${INTERNAL}`, inputSchema: { type: 'object', properties: { ...CALLER }, additionalProperties: false } },
+  { name: 'dsh_market_open', description: '啟動本機市場網站並回傳網址。外掛打開市場時用；外掛打不開時，d-sh-are-in-cc:market 技能讓 Claude 呼叫，拿到網址後用內建瀏覽器打開。', inputSchema: { type: 'object', properties: { ...CALLER }, additionalProperties: false } },
   { name: 'dsh_market_take', description: `取出網頁上排隊的工作。${INTERNAL}`, inputSchema: { type: 'object', properties: { ...CALLER }, additionalProperties: false } },
   {
     name: 'dsh_market_report',

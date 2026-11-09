@@ -1,6 +1,6 @@
 # D_sh-are_in_cc
 
-> **0.2.0-beta.2 — 公開測試版。尚未在真正的 Claude Code 中完成重新安裝、載入及操作驗證；不能視為已確認完整可用。此次發布沒有啟動 Claude 或呼叫模型，歷史測試結果不等於本次實機驗證。**
+> **0.2.0-beta.3 — 公開測試版。尚未在真正的 Claude Code 中完成重新安裝、載入及操作驗證；不能視為已確認完整可用。此次發布沒有啟動 Claude 或呼叫模型，歷史測試結果不等於本次實機驗證。**
 >
 > **Public beta: fresh installation, loading, and interaction in a real Claude Code session have not been verified. This publication did not launch Claude or call a model. Historical tests are not fresh installed-client verification.**
 
@@ -23,7 +23,7 @@ DSH（DeepSeek Harness）社群已經有好幾千個插件，但它們是為 DSH
 
 ## 需要什麼
 
-- Claude Code。桌面版會在右邊的內建瀏覽器打開插件市場和插件畫面；終端機版的插件市場改成對話旁的面板。
+- Claude Code。桌面版會在右邊的內建瀏覽器打開插件市場和插件畫面；終端機版會給你網址，用自己的瀏覽器打開。
 - Node.js 22 以上。
 - 目前只在 Windows 上實際用過。
 
@@ -55,7 +55,7 @@ npm ci --ignore-scripts --legacy-peer-deps
 
 ### 1. 打開插件市場
 
-輸入 `/d-sh-are-in-cc-market`。
+輸入 `/d-sh-are-in-cc:market`，插件市場會在右邊的內建瀏覽器打開。
 
 插件市場讀兩份社群維護的清單：開放插件市場（dshopen.org）和 Awesome DSH 插件精選（awesome-dsh-plugin.com），合併後約七千個插件。這兩份都不是 DeepSeek 官方的清單，清單上的說明是作者自己寫的，不代表安全。
 
@@ -321,7 +321,7 @@ Then run `/reload-plugins` in Claude Code. Converting needs the official DSH pac
 
 **Use**
 
-- `/d-sh-are-in-cc-market` opens the plugin market (about 7,000 plugins from two community lists). Filter by status (installed, not installed, downloaded, favorites), category or list.
+- `/d-sh-are-in-cc:market` opens the plugin market in the built-in browser (about 7,000 plugins from two community lists). Filter by status (installed, not installed, downloaded, favorites), category or list.
 - `/d-sh-are-in-cc:install <plugin>` reviews and installs a plugin; `/d-sh-are-in-cc:scan <plugin>` only reviews it.
 - Each converted plugin gets `/<name>-status`, `/<name>-restart`, `/<name>-trust`, and `/<name>-ui` when the original plugin has its own screens.
 

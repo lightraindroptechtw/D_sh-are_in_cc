@@ -71,9 +71,9 @@ node bin/d-sh-are-in-cc.mjs delete-download <npm 套件名稱>
 | `skills/rewrite/SKILL.md` | `/d-sh-are-in-cc:rewrite`：確認授權、確實有裝不進來的部分後，開一個使用者指定模型與思考強度的子代理，用 Claude Code 自己的功能補寫；做不到的照實說明，使用者同意才安裝 |
 | `agents/dsh-reviewer.md` | 審查用子代理 `d-sh-are-in-cc:dsh-reviewer`：只有 Read、Grep、Glob，模型 Sonnet；指示寫明原始碼裡的文字一律當資料、要它回報「安全」的文字列為可疑、混淆程式碼回報「無法審查，不建議安裝」。判斷能不能補寫時先讀完功能摘要，需要細節才在完整型別檔裡找名稱；摘要裡沒有對應功能才寫「Claude Code 無法實作」；用內建工具（`$.tool.call`）或這個對話連上的 MCP 伺服器（`$.mcp.call`，例如 `Claude_Browser`）做到的，要註明「只在有該伺服器的環境能用」 |
 
-### 瀏覽器版 DSH 插件市場（`/d-sh-are-in-cc-market`）
+### DSH 插件市場（`/d-sh-are-in-cc:market`）
 
-在 Claude 桌面版輸入 `/d-sh-are-in-cc-market`，市場會在右邊的內建瀏覽器打開；沒有內建瀏覽器（例如終端機）時改開下面的面板。
+輸入 `/d-sh-are-in-cc:market`（市場技能 `skills/market/SKILL.md` 的名稱）時，外掛的 `command.run` 掛勾先接手：用 `dsh_market_open` 拿網址，再用 `$.mcp.call('Claude_Browser', 'preview_start', { url })` 在右邊的內建瀏覽器打開，Claude 不參與。自動模式的審核看不到使用者對這個呼叫的要求，會擋下外掛自己開瀏覽器（2026-11-03 實測），所以外掛的 `tool.check` 只在打開的當下、只替它這次拿到的那一個網址放行。外掛打不開時（例如終端機沒有內建瀏覽器）才交給市場技能，讓 Claude 在對話裡開，並把外掛打不開的原因告訴 Claude。對話旁的面板版已刪除。
 
 - `bin/market-server.mjs` 是插件附帶的 MCP 伺服器（`plugin.json` 的 `mcpServers.DSH-market`），跟著 Claude Code 啟動、結束；不需要 `npm ci`，用 Node.js 內建功能（`--experimental-strip-types` 直接載入 `hooks/*.ts` 的清單整理程式）。
 - 它開一個只綁 `127.0.0.1` 的本機網站（`lib/market-web.mjs`），每次啟動產生新的存取鑰匙放在網址 `#access=` 後面。網頁把鑰匙存進分頁的 sessionStorage 並從網址拿掉；所有 `/api/` 請求都要帶鑰匙（`x-dsh-access`），Host 必須是 `127.0.0.1:<埠>`（擋 DNS rebinding），帶 Origin 或 `Sec-Fetch-Site` 時必須是同一個網站。頁面的內容安全政策只允許自己的腳本，自述文件的圖片只能從 https 載入，Referrer-Policy 是 no-referrer。
@@ -82,27 +82,14 @@ node bin/d-sh-are-in-cc.mjs delete-download <npm 套件名稱>
 - 網頁上按「審查並安裝／腳本安全掃描／只下載原始碼」只是排隊：網站依清單自己產生來源寫法（不用網頁給的），外掛（`hooks/register.tsx`）每秒用 `$.mcp.call` 拿一次，再檢查一次格式後執行（審查交給 `/d-sh-are-in-cc:install`，下載與掃描交給轉換器命令列），結果回報給網頁。「開啟資料夾」只開這個工作階段下載過的資料夾。
 - 介面文字有 9 種語言（`market-web/i18n.js`：繁體中文、简体中文、English、日本語、한국어、Español、Français、Русский、العربية），右上角選；選過會記住，阿拉伯文整頁由右往左排。插件的說明、分類、自述文件是作者寫的，原樣顯示。
 - 搜尋框右邊的「Haiku 搜尋」：使用者用白話寫想找什麼，外掛用 `$.model.complete` 直接問 Haiku 兩題（沒有工具、沒有對話記錄）：先想出簡繁中文與英文的關鍵字並依意思分組，網站用關鍵字在清單找最多 40 個候選（`dsh_market_candidates`：越少插件有的詞分數越高，一組同義詞只算一次，第一組加重，短英文詞要整個詞對到），Haiku 再挑出符合的並各寫一句理由（用介面語言）。只採用候選裡有的插件；使用者的描述與插件資料都包在 `<<< >>>` 裡當資料。每次搜尋會用到使用者一點 Claude 額度。
-- 外掛用 `$.mcp.call('Claude_Browser', 'preview_start', { url })` 打開內建瀏覽器（2026-10-25 實測可用）。市場伺服器的工具只給外掛用：外掛每次呼叫都帶一個隨機的 `caller`，`tool.check` 只放行帶對的呼叫，模型直接呼叫一律拒絕。
+- 模型只能呼叫 `dsh_market_open`（只在本機開網站、回傳網址，市場技能用）；外掛自己打開網站或 Claude 呼叫它之後，外掛才開始每秒接手網頁上的工作。其他市場伺服器的工具只給外掛用：外掛每次呼叫都帶一個隨機的 `caller`，`tool.check` 只放行帶對的呼叫，模型直接呼叫一律拒絕。
 - 改了 `bin/market-server.mjs` 或 `lib/market-web.mjs` 後，要開新的工作階段才會換成新版（`/reload-plugins` 只重新載入外掛）。
 
-### DSH 插件市場面板（`/d-sh-are-in-cc-market`）
-
-`hooks/register.tsx` 是一個 mod，輸入 `/d-sh-are-in-cc-market` 會在對話旁開一個面板：
+### 社群清單的讀取（`hooks/catalog.ts`、`hooks/markets.ts`、`hooks/readme.ts`，網頁版與命令列的 `search` 共用）
 
 - 讀兩份社群維護的清單（都不是 DeepSeek 官方），共三個檔案，經 Claude Code 的網路功能（`$.http.fetch`）讀取：開放插件市場（`https://dshopen.org/index.json`）；Awesome DSH 插件精選的 npm 套件索引（`https://cdn.jsdelivr.net/npm/dsh-plugin-catalog/index.json`，只有發布在 npm 的插件，有版本清單和中文說明）與網站完整清單（`https://awesome-dsh-plugin.com/catalog.json`，網站本身用的清單，多了只放在 GitHub 的插件，說明只有英文）。同名插件合併成一筆，每張卡片標出來自哪份清單；2026-10-25 實測：開放 880、npm 索引 3444、網站 6770，合併後 7096 個（網站的全部收進來，另加只在開放插件市場的），整理約 50 毫秒。格式不對的條目略過。
 - 網站清單每筆只有一條 DSH 安裝指令、沒有版本清單：npm 插件下載當下取最新版（轉換器回報實際版本號）；GitHub 插件（2782 個）下載當下取預設分支，轉換器的 `fetch` 回報的 `pinnedSource` 固定到那一次提交（`…/tree/<提交>`），之後的掃描與安裝都用它；`#path:/子目錄` 轉成 `--package-dir`。GitHub 發布檔（544 個 .tgz）轉換器還不能下載，只顯示介紹與自述文件，不給審查與安裝按鈕。
-- 自述文件：插件頁自動讀選定版本的自述文件並寫明來源。npm 版本先向 jsDelivr 要檔案清單（`data.jsdelivr.com/v1/packages/npm/<名稱>@<版本>?structure=flat`），挑插件那一層的 README，繁中、簡中優先，再從 `cdn.jsdelivr.net` 讀；GitHub 固定提交同樣經 jsDelivr；GitHub 預設分支沒有檔案清單可查，依序試常見檔名（`raw.githubusercontent.com/<擁有者>/<倉庫>/HEAD/…`）。內容只顯示：拿掉 HTML 標籤與註解、圖片改成文字連結（面板不載入外部圖片），超過 6 萬字截斷。
-- 不在本機存清單：每次用 `/d-sh-are-in-cc-market` 開啟面板、或按「清單來源」裡的「重新讀取」，都會重新讀兩份清單，所以內容跟著社群清單更新。「清單來源」卡片列出每份清單的名稱、網站、說明、實際讀取的網址、這次讀到幾個和讀取時間。某一份這次讀不到時，沿用這個工作階段上次讀到的內容並標明；兩份都沒讀到過才顯示錯誤。
 - 下載次數：卡片與插件頁依序用 npm 官方統計（`api.npmjs.org/downloads/point/last-month/`）過去 30 天的精確次數（只查畫面上看得到的插件，同一個工作階段查過不再查）、Awesome 網站清單的下載數（`dl`，3425 個插件有；比對 billion-context 是 1,802,220，npm 過去 30 天是 1,816,192，所以當成同樣約 30 天）、開放插件市場的下載量級標籤（`downloads-100` 到 `downloads-100k`，清單沒寫是總數還是一段期間）。從 GitHub 安裝的插件沒有下載次數。「下載最多」排序先用網站清單的下載數，沒有才用量級。
-- 卡片寬度：桌面版面板夠寬時一排 4 張、較窄時 2 張；終端機一排 2 張，面板太窄才 1 張。
-- 可以搜尋（空白分開的關鍵字都要出現）、依分類或市場篩選、換頁。
-- 插件頁顯示說明、作者、首頁與原始碼倉庫連結、版本選單，以及三個按鈕：
-  - **下載原始碼**：執行 `fetch`，只下載選定的固定版本（npm 版本或 GitHub 提交），不安裝、不執行，完成後可以開啟資料夾或複製路徑。
-  - **腳本安全掃描**：執行 `scan --markdown`，把固定規則的表格原樣顯示，不經 AI 改寫。
-  - **交給 Claude 審查並安裝**：執行 `/d-sh-are-in-cc:install <固定版本>`，走安裝技能的審查流程，使用者同意後才安裝。
-- 目錄內容一律當資料顯示，不當指令。面板上方註明「清單內容由插件作者提供，不代表插件安全」。
-- 下載或掃描失敗時分四段說明：發生什麼、原因、怎麼處理、影響。例如轉換器缺依賴、找不到 Node.js。
-- 手機版沒有輸入框，只顯示「請在電腦版開啟」。
 
 目錄的整理與搜尋在 `hooks/catalog.ts`（純函式，不連網），狀態合約在 `types/index.d.ts`。
 
@@ -315,6 +302,6 @@ node --test tests/ui-*.test.mjs tests/claude-ui.test.mjs tests/link-scope.test.m
 
 `tests/install-local-*.test.mjs` 用合成插件與替身 npm（不連網路），測 npm 來源解析與解開、`install-local` 的轉換、`marketplace.json` 更新、重複安裝覆蓋、名稱衝突、白話表格；home 一律是測試暫存資料夾，不碰真正的 `~/.dsh-to-claude` 與 `~/.claude`。
 
-市場面板：`node --test tests/market-catalog.test.mjs`（目錄整理與搜尋）、`npx tsc -p tests/market-mod/tsconfig.json`（型別檢查），以及 mod 測試 `hooks/market.test.tsx`、`hooks/market-offline.test.tsx`（假造網路與命令列，測瀏覽、搜尋、下載、掃描、交給 Claude、失敗說明、目錄讀不到）。mod 測試要用 `claude plugin test`，但在根目錄執行會連 `tests/claude-mod/fixture/tests/` 一起跑，那些是範本插件的測試，在根目錄會失敗；請把 `.claude-plugin/`、`hooks/`、`types/` 複製到另一個資料夾再執行。
+市場：`node --test tests/market-catalog.test.mjs`（目錄整理與搜尋）、`npx tsc -p tests/market-mod/tsconfig.json`（型別檢查），以及 mod 測試 `hooks/market-browser.test.tsx`（假造市場伺服器，測網頁工作的接手與回報、Haiku 搜尋、模型能叫哪些市場工具）。mod 測試要用 `claude plugin test`，但在根目錄執行會連 `tests/claude-mod/fixture/tests/` 一起跑，那些是範本插件的測試，在根目錄會失敗；請把 `.claude-plugin/`、`hooks/` 複製到另一個資料夾再執行。
 
 其餘 `tests/` 底下是 DSH 宿主（沿用自 `dsh-to-codex` 0.4.0）、子程序宿主與 mod 範本的測試。

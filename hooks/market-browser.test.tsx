@@ -1,5 +1,5 @@
-// 瀏覽器版市場：/d-sh-are-in-cc-market 打開內建瀏覽器；網頁排隊的工作由外掛接手並回報；模型不能直接呼叫市場工具。
-// 市場伺服器（bin/market-server.mjs）與內建瀏覽器都在下面假造。
+// 瀏覽器版市場：/d-sh-are-in-cc:market 由外掛自己打開內建瀏覽器，打不開才交給市場技能；
+// 網頁排隊的工作由外掛接手並回報；模型只能呼叫開網站的工具。市場伺服器（bin/market-server.mjs）與內建瀏覽器都在下面假造。
 import { expect, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
@@ -10,13 +10,67 @@ declare const setTimeout: (callback: (value?: unknown) => void, ms: number) => u
 const DECLARED = 'DSH-market'
 const SERVER = `plugin:d-sh-are-in-cc:${DECLARED}`
 const URL = `http://127.0.0.1:50123/#access=${'a'.repeat(64)}`
-const OPEN = { command: 'd-sh-are-in-cc-market', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
+const OPEN_TOOL = 'mcp__plugin_d-sh-are-in-cc_DSH-market__dsh_market_open'
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 const ok = (value: unknown) => ({ value: { content: [{ type: 'text', text: JSON.stringify(value) }], structuredContent: value, isError: false } })
+const BROWSER_TOOL = 'mcp__Claude_Browser__preview_start'
+const MARKET = { command: 'd-sh-are-in-cc:market', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 100 } } as const
 
-test('/d-sh-are-in-cc-market opens the built-in browser; a queued review is handed to the install skill and reported back; the model cannot call the market tools', async ($, on) => {
+test('/d-sh-are-in-cc:market: the plugin opens the built-in browser itself; the permission check allows only that URL, only while opening', async ($, on) => {
+  const during: string[] = []
+  on('clock.every', () => {
+    throw new Error('這個測試不跑計時器')
+  })
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('mcp.connect', () => ({ value: { isConnected: true, server: SERVER } }))
+  // 外掛不管的呼叫交給引擎自己的權限判斷：這裡一律「要問」。
+  on('tool.check', () => ({ decision: 'ask' }))
+  on('mcp.call', async (_, e) => {
+    if (e.server === 'Claude_Browser') {
+      // 打開的當下問權限檢查：這個網址放行，別的網址不歸外掛管。
+      during.push((await $.tool.check({ tool: BROWSER_TOOL, input: { url: String(e.args.url) } })).decision)
+      during.push((await $.tool.check({ tool: BROWSER_TOOL, input: { url: 'https://example.com/' } })).decision)
+      return ok({ navOk: true })
+    }
+    if (e.tool === 'dsh_market_open') return ok({ url: URL })
+    return ok({ jobs: [], opened: true })
+  })
+  on('command.run', { command: 'd-sh-are-in-cc:market' }, () => {
+    throw new Error('外掛打得開，不該交給市場技能')
+  })
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  const result = await $.command.run(MARKET)
+  expect(result.text).toContain('內建瀏覽器')
+  expect(during[0]).toBe('allow')
+  expect(during[1]).not.toBe('allow')
+  // 打開之後，同一個網址也不再由外掛放行。
+  expect((await $.tool.check({ tool: BROWSER_TOOL, input: { url: URL } })).decision).not.toBe('allow')
+})
+
+test('/d-sh-are-in-cc:market: when the plugin cannot open the browser, the market skill runs and Claude is told why', async ($, on) => {
+  const handed: string[] = []
+  on('clock.every', () => {
+    throw new Error('這個測試不跑計時器')
+  })
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('mcp.connect', () => ({ value: { isConnected: true, server: SERVER } }))
+  on('mcp.call', (_, e) => {
+    if (e.server === 'Claude_Browser') return { value: { content: [{ type: 'text', text: '沒有這個 MCP 伺服器' }], isError: true } }
+    if (e.tool === 'dsh_market_open') return ok({ url: URL })
+    return ok({ jobs: [], opened: true })
+  })
+  on('command.run', { command: 'd-sh-are-in-cc:market' }, (_, e) => {
+    handed.push(e.command)
+    return { text: '' }
+  })
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const result = await $.command.run(MARKET)
+  expect(handed).toEqual(['d-sh-are-in-cc:market'])
+  expect(result.context?.join('\n')).toContain('內建瀏覽器打不開：沒有這個 MCP 伺服器')
+})
+
+test('after Claude opens the site, a queued review is handed to the install skill and reported back; the model can call only the open tool', async ($, on) => {
   const calls: { tool: string; args: Record<string, unknown> }[] = []
-  const shown: string[] = []
   const prompts: string[] = []
   let queue = [
     { id: '1', action: 'review', spec: 'npm:dsh-a@1.0.0' },
@@ -25,30 +79,32 @@ test('/d-sh-are-in-cc-market opens the built-in browser; a queued review is hand
   ]
   // 測試裡由這裡推動外掛的計時器：每 10 毫秒放行一次；測完拒絕，計時器就停。
   let ticking = true
+  let siteOpen = false
   on('clock.every', async () => {
     if (!ticking) throw new Error('測試結束')
     await sleep(10)
     return { value: undefined }
   })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('command.register', () => ({ value: { command: 'd-sh-are-in-cc-market' } }))
   on('mcp.connect', (_, e) => {
     if (e.server !== DECLARED) throw new Error(`This plugin's manifest lists no MCP server named "${e.server}".`)
     return { value: { isConnected: true, server: SERVER } }
   })
   on('mcp.call', (_, e) => {
-    if (e.server === 'Claude_Browser') {
-      shown.push(String(e.args.url))
-      return ok({ navOk: true })
-    }
     calls.push({ tool: e.tool, args: e.args })
     if (e.tool === 'dsh_market_open') return ok({ url: URL })
     if (e.tool === 'dsh_market_take') {
+      if (!siteOpen) return ok({ jobs: [], opened: false })
       const jobs = queue
       queue = []
       return ok({ jobs, opened: true })
     }
     return ok({ ok: true })
+  })
+  // 引擎自己執行這個 MCP 工具（模型的呼叫）：網站打開。
+  on('tool.call', { tool: OPEN_TOOL }, () => {
+    siteOpen = true
+    return { result: JSON.stringify({ url: URL }) }
   })
   on('command.run', { command: 'd-sh-are-in-cc:install' }, (_, e) => {
     prompts.push(`/${e.command} ${e.args}`)
@@ -56,9 +112,8 @@ test('/d-sh-are-in-cc-market opens the built-in browser; a queued review is hand
   })
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
 
-  const result = await $.command.run(OPEN)
-  expect(result.text).toContain('內建瀏覽器')
-  expect(shown).toEqual([URL])
+  expect((await $.tool.check({ tool: OPEN_TOOL, input: {} })).decision).toBe('allow')
+  expect(String((await $.tool.call({ tool: OPEN_TOOL })).result)).toContain(URL)
 
   for (let i = 0; i < 150 && calls.filter(c => c.tool === 'dsh_market_report').length < 3; i++) await sleep(20)
   ticking = false
@@ -81,31 +136,6 @@ test('/d-sh-are-in-cc-market opens the built-in browser; a queued review is hand
   expect((await $.tool.check({ tool, input: { caller } })).decision).toBe('allow')
 })
 
-test('without the built-in browser (a terminal), /d-sh-are-in-cc-market opens the pane and says why', async ($, on) => {
-  on('clock.every', () => {
-    throw new Error('這個測試不跑計時器')
-  })
-  on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('command.register', () => ({ value: { command: 'd-sh-are-in-cc-market' } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
-  on('http.fetch', () => ({ value: { status: 503, ok: false, headers: {}, text: '' } }))
-  on('mcp.connect', (_, e) => {
-    if (e.server !== DECLARED) throw new Error(`This plugin's manifest lists no MCP server named "${e.server}".`)
-    return { value: { isConnected: true, server: SERVER } }
-  })
-  on('mcp.call', (_, e) => {
-    if (e.server === 'Claude_Browser') return { value: { content: [{ type: 'text', text: '沒有這個 MCP 伺服器' }], isError: true } }
-    if (e.tool === 'dsh_market_open') return ok({ url: URL })
-    return ok({ jobs: [], opened: true })
-  })
-  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
-  const result = await $.command.run(OPEN)
-  expect(result.text).toContain('已開啟 DSH 插件市場面板')
-  expect(result.text).toContain('網頁版打不開：內建瀏覽器打不開：沒有這個 MCP 伺服器')
-  // 面板在背景讀清單（這裡讀不到），等它結束再收工。
-  await sleep(100)
-})
-
 test('Haiku search: Haiku thinks of keywords, the market finds candidates, Haiku picks; only listed plugins come back', async ($, on) => {
   const calls: { tool: string; args: Record<string, unknown> }[] = []
   const asked: { model: string; prompt: string }[] = []
@@ -123,13 +153,11 @@ test('Haiku search: Haiku thinks of keywords, the market finds candidates, Haiku
     throw new Error('測試不等逾時')
   })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('command.register', () => ({ value: { command: 'd-sh-are-in-cc-market' } }))
   on('mcp.connect', (_, e) => {
     if (e.server !== DECLARED) throw new Error(`This plugin's manifest lists no MCP server named "${e.server}".`)
     return { value: { isConnected: true, server: SERVER } }
   })
   on('mcp.call', (_, e) => {
-    if (e.server === 'Claude_Browser') return ok({ navOk: true })
     calls.push({ tool: e.tool, args: e.args })
     if (e.tool === 'dsh_market_open') return ok({ url: URL })
     if (e.tool === 'dsh_market_take') {
@@ -151,8 +179,9 @@ test('Haiku search: Haiku thinks of keywords, the market finds candidates, Haiku
       : '{"results":[{"n":"dsh-backup","r":"Backs up your chats"},{"n":"evil/not-a-candidate","r":"x"}]}'
     return { value: { isAnswered: true, text, usage } }
   })
+  on('tool.call', { tool: OPEN_TOOL }, () => ({ result: JSON.stringify({ url: URL }) }))
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
-  await $.command.run(OPEN)
+  await $.tool.call({ tool: OPEN_TOOL })
 
   for (let i = 0; i < 150 && !calls.some(c => c.tool === 'dsh_market_report'); i++) await sleep(20)
   ticking = false
@@ -190,7 +219,6 @@ test('the rewrite skill can check a model in the conversation through rewrite_mo
     throw new Error('這個測試不跑計時器')
   })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('command.register', () => ({ value: { command: 'd-sh-are-in-cc-market' } }))
   on('mcp.connect', () => ({ value: { isConnected: false, reason: 'failed', message: '測試沒有市場伺服器' } }))
   on('tool.register', (_, e) => {
     registered.push(e as unknown as Record<string, unknown>)
